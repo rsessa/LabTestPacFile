@@ -1,27 +1,49 @@
 function FindProxyForURL(url, host) {
-    // Normalización para evitar errores de coincidencia de mayúsculas/minúsculas
+    // Normalización
     host = host.toLowerCase();
 
-    // 1. Excluir tráfico local y de la propia red de Cloudflare para evitar bucles
-    if (isPlainHostName(host) |
+    // ---------------------------------------------------------
+    // 1. REGLA DE PRUEBA (KILL SWITCH) - PRIMERO QUE NADA
+    // ---------------------------------------------------------
+    // Al poner esto primero, evitamos que el script intente resolver DNS
+    // para un dominio que sabemos que no existe.
+    if (host === "test-pac.lab") {
+        // Usamos una IP que sabemos que va a dar timeout o rechazar, 
+        // pero validará que el proxy fue seleccionado.
+        return "PROXY 198.51.100.1:8080";
+    }
 
-|
-        shExpMatch(host, "*.local") |
-
-|
-        isInNet(dnsResolve(host), "10.0.0.0", "255.0.0.0") ||
+    // ---------------------------------------------------------
+    // 2. Excepciones Simples (Sin DNS)
+    // ---------------------------------------------------------
+    if (isPlainHostName(host) ||
+        shExpMatch(host, "*.local") ||
         dnsDomainIs(host, "pages.dev")) {
         return "DIRECT";
     }
 
-    // 2. Condición de Prueba: "Kill Switch" para verificar la aplicación del PAC
-    // Si navegamos a "test-pac.local" (o un dominio ficticio), enviamos a un proxy falso.
-    if (host == "test-pac.lab") {
-        return "PROXY 198.51.100.1:8080"; // IP de TEST-NET-2 (reservada, no enrutable)
-    }
+    // ---------------------------------------------------------
+    // 3. Excepciones Complejas (Con DNS)
+    // ---------------------------------------------------------
+    // Solo llegamos aquí si NO es test-pac.lab.
+    // OJO: Si el host no existe en DNS, esta línea podría fallar y causar
+    // que el tráfico vaya DIRECT por error en algunos navegadores.
+    // Es recomendable envolver dnsResolve en un try-catch o usar isResolvable,
+    // pero para este lab, simplemente moverlo debajo es suficiente.
 
-    // 3. Tráfico General
-    // En un escenario real aquí irían los proxies corporativos.
-    // Para el lab, usamos DIRECT para permitir navegación, o un proxy SOCKS si se tiene uno.
+    // Si quieres ser muy estricto:
+    /* try {
+        var resolvedIp = dnsResolve(host);
+        if (isInNet(resolvedIp, "10.0.0.0", "255.0.0.0")) {
+            return "DIRECT";
+        }
+    } catch(e) { 
+        // Si falla el DNS, seguimos
+    }
+    */
+
+    // ---------------------------------------------------------
+    // 4. Tráfico General
+    // ---------------------------------------------------------
     return "DIRECT";
 }
