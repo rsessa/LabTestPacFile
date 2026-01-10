@@ -38,7 +38,7 @@ export default {
             return new Response(pacContent, {
                 headers: {
                     "Content-Type": "application/x-ns-proxy-autoconfig",
-                    "Cache-Control": "public, max-age=60, must-revalidate",
+                    "Cache-Control": "public, max-age=120, must-revalidate",
                     "Access-Control-Allow-Origin": "*",
                     "X-Content-Type-Options": "nosniff"
                 }
